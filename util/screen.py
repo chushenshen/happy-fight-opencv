@@ -46,3 +46,4 @@ def screen(hWnd):
     img = cv2.cvtColor(img, cv2.COLOR_BGRA2RGB)
     # cv2.imwrite('screen.png', img)
     return img
+# 欢乐斗地主记牌器

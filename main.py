@@ -23,7 +23,7 @@ status = 0
 PokerList = [
     Poker('王', cv2.imread('templete/dawang.png', 0), 2),
     Poker('2', cv2.imread('templete/fangkuai_2.png', 0)),
-    Poker('A', cv2.imread('templete/fangkuai_a.png', 0)),
+    Poker('A', cv2.imread('templete/fangkuai_a_b.png', 0)),
     Poker('K', cv2.imread('templete/fangkuai_k_1.png', 0)),
     Poker('Q', cv2.imread('templete/fangkuai_q_b.png', 0)),
     Poker('J', cv2.imread('templete/fangkuai_j_b.png', 0)),
@@ -138,7 +138,7 @@ class MyThread(QThread):
 
                 # 自家出牌
                 num = self.matchImgNum(selfOutCard, pokerObj.otherImg, 0.85)
-                cv2.imwrite('bgImgSelf.png', selfOutCard)
+                # cv2.imwrite('bgImgSelf.png', selfOutCard)
                 if num > 0:
                     selfOutList.append({'name': pokerObj.name, 'num': num})
             # 判断底牌
