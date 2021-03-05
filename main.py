@@ -11,7 +11,7 @@ from vo.Poker import Poker
 from util.screen import *
 from view.Window import (Window, QThread, pyqtSignal, time, QtWidgets)
 import sys
-欢乐斗地主记牌器
+
 hWnd = win32gui.FindWindow(None, "欢乐斗地主")
 continueGame = cv2.imread('templete/continue_game.png', 0)
 # 0 没有出牌，1第一次检测到，2第二次检测到
@@ -225,13 +225,18 @@ class MyThread(QThread):
             self.main()
 
 
-app = QtWidgets.QApplication([])
-window = Window(hWnd)
-th1 = MyThread()
-th1.breakSignal.connect(window.setNum)
-th1.statusSignal.connect(window.setStatus)
-th1.start()
-# window.setStyleSheet('background-color: rgba(0, 0, 0, 0); border-radius:25px; border:2px solid;')
-window.showWin()
-# window.setNum(1)
-sys.exit(app.exec_())
+def main():
+    app = QtWidgets.QApplication([])
+    window = Window(hWnd)
+    th1 = MyThread()
+    th1.breakSignal.connect(window.setNum)
+    th1.statusSignal.connect(window.setStatus)
+    th1.start()
+    # window.setStyleSheet('background-color: rgba(0, 0, 0, 0); border-radius:25px; border:2px solid;')
+    window.showWin()
+    # window.setNum(1)
+    sys.exit(app.exec_())
+
+
+if __name__ == '__main__':
+    main()
