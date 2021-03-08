@@ -11,9 +11,7 @@
 ## 功能视频演示
 
 
-[video(video-Vx7SSApk-1615193728731)(type-tencent)(url-https://v.qq.com/txp/iframe/player.html?vid=n3232e6ft9h)(image-http://puui.qpic.cn/vpic/0/n3232e6ft9h.png/0)(title-)]
-
-
+https://v.qq.com/txp/iframe/player.html?vid=n3232e6ft9h
 
 
 ## 仓库地址
