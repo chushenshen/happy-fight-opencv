@@ -10,6 +10,7 @@
 from vo.Poker import Poker
 from util.screen import *
 from view.Window import (Window, QThread, pyqtSignal, time, QtWidgets)
+from view.LogWindow import LogWindow
 import sys
 
 hWnd = win32gui.FindWindow(None, "欢乐斗地主")
@@ -19,7 +20,7 @@ isUpOut = 0
 isDownOut = 0
 isSelfOut = 0
 # 0 结束，1 第一次开局，2 记牌中
-status = 0
+status = -1
 PokerList = [
     Poker('王', cv2.imread('templete/dawang.png', 0), 2),
     Poker('2', cv2.imread('templete/fangkuai_2.png', 0)),
@@ -52,8 +53,22 @@ PokerList = [
 ]
 
 
+class WindowThread(QThread):
+    # 定义信号,定义参数为str类型
+    breakSignal = pyqtSignal(int)
+
+    # 子类的构造函数必须先调用其父类的构造函数，重写run()方法。
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def run(self):
+        while (True):
+            time.sleep(0.2)
+            self.breakSignal.emit(10)
+
+
 class MyThread(QThread):
-    breakSignal = pyqtSignal(list, list)
+    breakSignal = pyqtSignal(list, list, object)
     statusSignal = pyqtSignal(int)
 
     # 子类的构造函数必须先调用其父类的构造函数，重写run()方法。
@@ -66,8 +81,8 @@ class MyThread(QThread):
         # w, h = templeteImg.shape[::-1]
         loc = np.where(res >= threshold)
         num = 0
+        last = 0
         if len(loc[0]) != 0:
-            last = 0
             # 排序
             loc[1].sort()
             for point in loc[1]:
@@ -80,7 +95,7 @@ class MyThread(QThread):
                     # cv2.imwrite('res22.png', tt)
                 last = point
 
-        return num
+        return num, last
 
     def main(self):
 
@@ -88,6 +103,7 @@ class MyThread(QThread):
         global isDownOut
         global isSelfOut
         global status
+        outList = {}
         templates = PokerList
         img_rgb = screen(hWnd)
 
@@ -100,14 +116,15 @@ class MyThread(QThread):
         downotherCard = img_gray[150:290, 520:1040]
         selfOutCard = img_gray[280:390, 200:900]
         handCard = img_gray[50:110, 450:570]
-        # cv2.imwrite('res33.png', handCard)
-        num = self.matchImgNum(img_gray, continueGame, 0.74)
+        num, x = self.matchImgNum(img_gray, continueGame, 0.74)
         if (num > 0):
             '''判断结束'''
-            print('结束')
-            status = 0
-            self.statusSignal.emit(status)
+            if status != 0:
+                status = 0
+                self.statusSignal.emit(status)
             return
+        if (status == -1):
+            status = 0
         selfList = []
         upotherList = []
         downotherList = []
@@ -118,31 +135,31 @@ class MyThread(QThread):
             if status > 0:
                 # 判断手牌
                 if status == 1:
-                    num = self.matchImgNum(selfCard, pokerObj.selfImg)
+                    num, x = self.matchImgNum(selfCard, pokerObj.selfImg)
                     pokerObj.num = pokerObj.num - num
-                    if (num > 0):
-                        print(pokerObj.name, num, end='|')
+                    # if (num > 0):
+                    # print(pokerObj.name, num, end='|')
                     # cv2.imwrite('aaa.png', selfCard)
 
                 selfList.append(pokerObj.num)
 
                 # 判断上家出牌，
-                num = self.matchImgNum(upotherCard, pokerObj.otherImg, 0.85)
+                num, x = self.matchImgNum(upotherCard, pokerObj.otherImg, 0.85)
                 # cv2.imwrite('bgImgu.png', upotherCard)
                 if num > 0:
-                    upotherList.append({'name': pokerObj.name, 'num': num})
+                    upotherList.append({'name': pokerObj.name, 'num': num, 'x': x})
                 # 下家出牌
-                num = self.matchImgNum(downotherCard, pokerObj.otherImg, 0.85)
+                num, x = self.matchImgNum(downotherCard, pokerObj.otherImg, 0.85)
                 if num > 0:
-                    downotherList.append({'name': pokerObj.name, 'num': num})
+                    downotherList.append({'name': pokerObj.name, 'num': num, 'x': x})
 
                 # 自家出牌
-                num = self.matchImgNum(selfOutCard, pokerObj.otherImg, 0.85)
+                num, x = self.matchImgNum(selfOutCard, pokerObj.otherImg, 0.85)
                 # cv2.imwrite('bgImgSelf.png', selfOutCard)
                 if num > 0:
-                    selfOutList.append({'name': pokerObj.name, 'num': num})
+                    selfOutList.append({'name': pokerObj.name, 'num': num, 'x': x})
             # 判断底牌
-            num = self.matchImgNum(handCard, pokerObj.handImg, 0.8)
+            num, x = self.matchImgNum(handCard, pokerObj.handImg, 0.8)
             if num > 0:
                 for ind in range(num):
                     handList.append(pokerObj.name)
@@ -151,11 +168,11 @@ class MyThread(QThread):
             status = 2
             self.statusSignal.emit(status)
         if len(handList) > 0 and status == 0:
-            print("开始")
+            # print("开始")
             status = 1
             self.statusSignal.emit(status)
-            print("底牌")
-            print(handList)
+            # print("底牌")
+            # print(handList)
             for pokerObj in templates:
                 pokerObj.init()
 
@@ -163,8 +180,10 @@ class MyThread(QThread):
             if isUpOut == 1:
                 isUpOut = 2
             elif isUpOut == 2:
-                print("上家：", end='')
-                print(upotherList)
+                # print("上家：", end='')
+                # print(upotherList)
+                # out.upotherList = upotherList
+                outList["upotherList"] = upotherList
                 for i, pokerObj in enumerate(templates):
                     for out in upotherList:
                         if pokerObj.name == out.get('name'):
@@ -182,8 +201,9 @@ class MyThread(QThread):
             if isDownOut == 1:
                 isDownOut = 2
             elif isDownOut == 2:
-                print("下家：", end='')
-                print(downotherList)
+                # print("下家：", end='')
+                # print(downotherList)
+                outList['downotherList'] = downotherList
                 for i, pokerObj in enumerate(templates):
                     for out in downotherList:
                         if pokerObj.name == out.get('name'):
@@ -201,8 +221,10 @@ class MyThread(QThread):
             if isSelfOut == 1:
                 isSelfOut = 2
             elif isSelfOut == 2:
-                print("自家：", end='')
-                print(selfOutList)
+                # print("自家：", end='')
+                # print(selfOutList)
+                outList['selfOutList'] = selfOutList
+
                 # 自家出牌不减少牌
                 # for i, pokerObj in enumerate(templates):
                 #     for out in selfOutList:
@@ -216,8 +238,7 @@ class MyThread(QThread):
                 isSelfOut = 1
         else:
             isSelfOut = 0
-
-        self.breakSignal.emit(selfList, handList)
+        self.breakSignal.emit(selfList, handList, outList)
 
     def run(self):
         while True:
@@ -225,18 +246,40 @@ class MyThread(QThread):
             self.main()
 
 
+def windowListener():
+    global window
+    # global logWindow
+
+    window.windowListener()
+    # logWindow.windowListener()
+
+
 def main():
+    global window
+    # global logWindow
     app = QtWidgets.QApplication([])
     window = Window(hWnd)
+    # logWindow = LogWindow(hWnd)
+
     th1 = MyThread()
     th1.breakSignal.connect(window.setNum)
     th1.statusSignal.connect(window.setStatus)
     th1.start()
     # window.setStyleSheet('background-color: rgba(0, 0, 0, 0); border-radius:25px; border:2px solid;')
+
+    windowThread = WindowThread()
+    windowThread.breakSignal.connect(windowListener)
+    windowThread.start()
+
     window.showWin()
+    # logWindow.showWin()
+
     # window.setNum(1)
     sys.exit(app.exec_())
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(e)
