@@ -41,10 +41,11 @@
 
 # 安装 opencv 使用清华镜像下载
 
-pip install python-opencv -i [https://pypi.tuna.tsinghua.edu.cn/simple](https://pypi.tuna.tsinghua.edu.cn/simple "https://pypi.tuna.tsinghua.edu.cn/simple")
-
-pip install win32gui -i [https://pypi.tuna.tsinghua.edu.cn/simple](https://pypi.tuna.tsinghua.edu.cn/simple "https://pypi.tuna.tsinghua.edu.cn/simple")
-
+```powershell
+# 安装 opencv 使用清华镜像下载
+pip install python-opencv -i https://pypi.tuna.tsinghua.edu.cn/simple
+pip install win32gui -i https://pypi.tuna.tsinghua.edu.cn/simple
+```
 ## 进入正题
 
 思考： &#x20;
@@ -57,95 +58,59 @@ pip install win32gui -i [https://pypi.tuna.tsinghua.edu.cn/simple](https://pypi.
 
 ![](image/20210305174532514_YV_hvvQlBy.png)
 
+拖动Finder Tool 工具到目标窗口，得到窗口句柄caption和class，这里咱们主要用到 caption
+
 ### 获取游戏截图
-
+```python
 import win32gui, win32ui, win32con
-
 import cv2
-
 import numpy as np
 
+
 def screen():
+    hWnd = win32gui.FindWindow(None, "欢乐斗地主")
+    left, top, right, bot = win32gui.GetWindowRect(hWnd)
+    width = right - left
+    height = bot - top
+    # 窗口隐藏或最小化，无法截图
+    if top < 0:
+        return None
+    # 返回句柄窗口的设备环境，覆盖整个窗口，包括非客户区，标题栏，菜单，边框
+    hWndDC = win32gui.GetWindowDC(hWnd)
+    # 创建设备描述表
+    mfcDC = win32ui.CreateDCFromHandle(hWndDC)
+    # 创建内存设备描述表
+    saveDC = mfcDC.CreateCompatibleDC()
+    # 创建位图对象准备保存图片
+    saveBitMap = win32ui.CreateBitmap()
+    # 为bitmap开辟存储空间
+    saveBitMap.CreateCompatibleBitmap(mfcDC, width, height)
+    # 将截图保存到saveBitMap中
+    saveDC.SelectObject(saveBitMap)
+    saveDC.BitBlt((0, 0), (width, height), mfcDC, (0, 0), win32con.SRCCOPY)
+    # 保存截图
+    # saveBitMap.SaveBitmapFile(saveDC, "img_Winapi.bmp")
+    signedIntsArray = saveBitMap.GetBitmapBits(True)
+    img = np.fromstring(signedIntsArray, dtype='uint8')
+    img.shape = (height, width, 4)
+    # 保存bitmap到内存设备描述表
+    img = cv2.resize(img, (1040, 629), interpolation=cv2.INTER_CUBIC)
+    img = cv2.cvtColor(img, cv2.COLOR_BGRA2RGB)
+    # cv2.imwrite('screen.png', img)
+    # 返回一张可以给opencv 使用的图片
+    return img
 
-hWnd = win32gui.FindWindow(None, "欢乐斗地主")
-
-left, top, right, bot = win32gui.GetWindowRect(hWnd)
-
-width = right - left
-
-height = bot - top
-
-# 窗口隐藏或最小化，无法截图
-
-if top < 0:
-
-return None
-
-# 返回句柄窗口的设备环境，覆盖整个窗口，包括非客户区，标题栏，菜单，边框
-
-hWndDC = win32gui.GetWindowDC(hWnd)
-
-# 创建设备描述表
-
-mfcDC = win32ui.CreateDCFromHandle(hWndDC)
-
-# 创建内存设备描述表
-
-saveDC = mfcDC.CreateCompatibleDC()
-
-# 创建位图对象准备保存图片
-
-saveBitMap = win32ui.CreateBitmap()
-
-# 为bitmap开辟存储空间
-
-saveBitMap.CreateCompatibleBitmap(mfcDC, width, height)
-
-# 将截图保存到saveBitMap中
-
-saveDC.SelectObject(saveBitMap)
-
-saveDC.BitBlt((0, 0), (width, height), mfcDC, (0, 0), win32con.SRCCOPY)
-
-# 保存截图
-
-# saveBitMap.SaveBitmapFile(saveDC, "img\_Winapi.bmp")
-
-signedIntsArray = saveBitMap.GetBitmapBits(True)
-
-img = np.fromstring(signedIntsArray, dtype='uint8')
-
-img.shape = (height, width, 4)
-
-# 保存bitmap到内存设备描述表
-
-img = cv2.resize(img, (1040, 629), interpolation=cv2.INTER\_CUBIC)
-
-img = cv2.cvtColor(img, cv2.COLOR\_BGRA2RGB)
-
-# cv2.imwrite('screen.png', img)
-
-# 返回一张可以给opencv 使用的图片
-
-return img
 
 # 调用截图方法，获取截图结果
-
 img = screen()
 
 # 转为灰色通道的图片
-
-img\_gray = cv2.cvtColor(img, cv2.COLOR\_BGR2GRAY)
-
+img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 # 显示图片
-
-cv2.imshow('img', img\_gray)
-
+cv2.imshow('img', img_gray)
 # 任意键退出
-
 cv2.waitKey(0)
-
-运行效果： &#x20;
+```
 
 
 ![](image/20210305175500448_lkHCunENJY.png)
@@ -154,28 +119,66 @@ cv2.waitKey(0)
 
 # 调用截图方法，获取截图结果
 
+```python
+# 调用截图方法，获取截图结果
 img = screen()
 
 # 转为灰色通道的图片，截取自己的出牌区域
-
-img\_gray = cv2.cvtColor(img, cv2.COLOR\_BGR2GRAY)\[350:622, 10:1042]
-
+img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)[350:622, 10:1042]
 # 显示图片
-
-cv2.imshow('img', img\_gray)
-
+cv2.imshow('img', img_gray)
 # 任意键退出
-
 cv2.waitKey(0)
-
-运行效果： &#x20;
-
+```
 
 ![](image/20210305175729360_f5XMHUJ5y1.png)
 
 ### 第三步，模板匹配
 
 ![](image/20210305175840884_-r1BLIXC9c.png)
+
+
+# 模板匹配方法
+
+```python
+# 模板匹配方法
+def matchImgNum(bgImg, templeteImg, threshold=0.92):
+    '''
+    bgImg：截图出来的底片
+    templeteImg；模板图片
+    threshold：对比精确度
+    '''
+    res = cv2.matchTemplate(bgImg, templeteImg, cv2.TM_CCOEFF_NORMED)
+    tt = bgImg.copy()
+    w, h = templeteImg.shape[::-1]
+    loc = np.where(res >= threshold)
+    num = 0
+    if len(loc[0]) != 0:
+        last = 0
+        # 排序
+        loc[1].sort()
+        for point in loc[1]:
+            if abs(last - point) > 5:
+                num += 1
+                # if save:
+                # print(save)
+                for pt in zip(*loc[::-1]):
+                    cv2.rectangle(tt, pt, (pt[0] + w, pt[1] + h), (0, 0, 255), 2)
+                cv2.imwrite('res223.png', tt)
+            last = point
+    return num
+
+
+# 调用截图方法，获取截图结果
+img = screen()
+# 转为灰色通道的图片，截取自己的出牌区域
+img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)[350:622, 10:1042]
+
+# 读取 模板， 扑克4
+temp = cv2.imread('templete/fangkuai_10.png', 0)
+num = matchImgNum(img, temp, 0.85)
+print('匹配出结果', num)
+```
 
 运行效果： &#x20;
 匹配出结果 4 &#x20;
@@ -195,73 +198,4 @@ ok，目前为止我们已经可以准确识别出自己的卡牌和数量，下
 
 模板文件我已经整理好，在代码仓库中
 
-# 模板匹配方法
-
-def matchImgNum(bgImg, templeteImg, threshold=0.92):
-
-'''
-
-bgImg：截图出来的底片
-
-templeteImg；模板图片
-
-threshold：对比精确度
-
-'''
-
-res = cv2.matchTemplate(bgImg, templeteImg, cv2.TM\_CCOEFF\_NORMED)
-
-tt = bgImg.copy()
-
-w, h = templeteImg.shape\[::-1]
-
-loc = np.where(res >= threshold)
-
-num = 0
-
-if len(loc\[0]) != 0:
-
-last = 0
-
-# 排序
-
-loc\[1].sort()
-
-for point in loc\[1]:
-
-if abs(last - point) > 5:
-
-num += 1
-
-# if save:
-
-# print(save)
-
-for pt in zip(\*loc\[::-1]):
-
-cv2.rectangle(tt, pt, (pt\[0] + w, pt\[1] + h), (0, 0, 255), 2)
-
-cv2.imwrite('res223.png', tt)
-
-last = point
-
-return num
-
-# 调用截图方法，获取截图结果
-
-img = screen()
-
-# 转为灰色通道的图片，截取自己的出牌区域
-
-img = cv2.cvtColor(img, cv2.COLOR\_BGR2GRAY)\[350:622, 10:1042]
-
-# 读取 模板， 扑克4
-
-temp = cv2.imread('templete/fangkuai\_10.png', 0)
-
-num = matchImgNum(img, temp, 0.85)
-
-print('匹配出结果', num)
-
-拖动Finder Tool 工具到目标窗口，得到窗口句柄caption和class，这里咱们主要用到 caption
 
