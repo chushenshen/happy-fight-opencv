@@ -12,6 +12,7 @@ from util.screen import *
 from view.Window import (Window, QThread, pyqtSignal, time, QtWidgets)
 from view.LogWindow import LogWindow
 import sys
+import win32com.client
 
 hWnd = win32gui.FindWindow(None, "欢乐斗地主")
 continueGame = cv2.imread('templete/continue_game.png', 0)
@@ -253,6 +254,12 @@ def windowListener():
     window.windowListener()
     # logWindow.windowListener()
 
+def top():
+    hwnd = win32gui.FindWindow(None, "欢乐斗地主")  # 获取当前窗口句柄
+    win32gui.SetWindowPos(hwnd, win32con.HWND_TOPMOST, 0, 0, 0, 0, win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
+    shell = win32com.client.Dispatch("WScript.Shell")
+    shell.SendKeys('%')
+    win32gui.SetForegroundWindow(hwnd)
 
 def main():
     global window
@@ -260,6 +267,7 @@ def main():
     app = QtWidgets.QApplication([])
     window = Window(hWnd)
     # logWindow = LogWindow(hWnd)
+    top()
 
     th1 = MyThread()
     th1.breakSignal.connect(window.setNum)
@@ -270,6 +278,7 @@ def main():
     windowThread = WindowThread()
     windowThread.breakSignal.connect(windowListener)
     windowThread.start()
+
 
     window.showWin()
     # logWindow.showWin()

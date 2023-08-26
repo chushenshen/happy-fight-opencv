@@ -7,6 +7,7 @@
 @file: screen.py
 @time: 2021/3/3 21:50:29
 """
+import win32api
 import win32gui, win32ui, win32con
 import cv2
 import numpy as np
@@ -14,29 +15,27 @@ import numpy as np
 
 def screen(hWnd):
     # print(hWnd)
-    # hWnd = win32gui.FindWindow("Chrome_WidgetWin_0", "欢乐斗地主")
+    # hWndDC = win32gui.FindWindow("Chrome_WidgetWin_0", "欢乐斗地主")
     left, top, right, bot = win32gui.GetWindowRect(hWnd)
     width = right - left
     height = bot - top
     # 窗口隐藏，无法截图
     if top < 0:
         return None
-    # win32gui.SetWindowPos(QQWin,win32con.HWND_TOPMOST,x, y, 300, 300, win32con.SWP_SHOWWINDOW)
-    # print(width, height)
-    # 返回句柄窗口的设备环境，覆盖整个窗口，包括非客户区，标题栏，菜单，边框
-    hWndDC = win32gui.GetWindowDC(hWnd)
-    # 创建设备描述表
-    mfcDC = win32ui.CreateDCFromHandle(hWndDC)
-    # 创建内存设备描述表
-    saveDC = mfcDC.CreateCompatibleDC()
-    # 创建位图对象准备保存图片
+    r = win32gui.GetWindowRect(hWnd)
+    hwin = win32gui.GetDesktopWindow()
+    # 图片最左边距离主屏左上角的水平距离
+    left = win32api.GetSystemMetrics(win32con.SM_XVIRTUALSCREEN)
+    # 图片最上边距离主屏左上角的垂直距离
+    top = win32api.GetSystemMetrics(win32con.SM_YVIRTUALSCREEN)
+    hwindc = win32gui.GetWindowDC(hwin)
+    srcdc = win32ui.CreateDCFromHandle(hwindc)
+    memdc = srcdc.CreateCompatibleDC()
     saveBitMap = win32ui.CreateBitmap()
-    # 为bitmap开辟存储空间
-    saveBitMap.CreateCompatibleBitmap(mfcDC, width, height)
-    # 将截图保存到saveBitMap中
-    saveDC.SelectObject(saveBitMap)
-    saveDC.BitBlt((0, 0), (width, height), mfcDC, (0, 0), win32con.SRCCOPY)
-    # saveBitMap.SaveBitmapFile(saveDC, "img_Winapi.bmp")
+    saveBitMap.CreateCompatibleBitmap(srcdc, r[2] - r[0], r[3] - r[1])
+    memdc.SelectObject(saveBitMap)
+    memdc.BitBlt((-r[0], top - r[1]), (r[2], r[3] - top), srcdc, (left, top), win32con.SRCCOPY)
+    # bmp.SaveBitmapFile(memdc, bmpFileName)
 
     signedIntsArray = saveBitMap.GetBitmapBits(True)
     img = np.fromstring(signedIntsArray, dtype='uint8')
